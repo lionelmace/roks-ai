@@ -61,21 +61,21 @@ locals {
 
   # LMA
   # Define subnet for the GPU worker pool (single zone)
-  # gpu_vpc_subnets = {
-  #   gpu = [
-  #     for subnet in local.all_subnets :
-  #     {
-  #       id         = subnet.id
-  #       cidr_block = subnet.cidr
-  #       zone       = subnet.zone
-  #     }
-  #     if strcontains(subnet.name, "subnet-gpu") # Use strcontains rather than == given that a prefix is added by landing zone vpc to subnet names
-  #   ]
-  # }
+  gpu_vpc_subnets = {
+    gpu = [
+      for subnet in local.all_subnets :
+      {
+        id         = subnet.id
+        cidr_block = subnet.cidr
+        zone       = subnet.zone
+      }
+      if strcontains(subnet.name, "subnet-gpu") # Use strcontains rather than == given that a prefix is added by landing zone vpc to subnet names
+    ]
+  }
 
   # Combine all subnets
   # LMA
-  # cluster_vpc_subnets = merge(local.default_vpc_subnets, local.gpu_vpc_subnets)
+  cluster_vpc_subnets = merge(local.default_vpc_subnets, local.gpu_vpc_subnets)
 
   boot_volume_encryption_kms_config = {
     crk             = module.kp_all_inclusive.keys["${local.key_ring}.${local.boot_volume_key}"].key_id
@@ -92,16 +92,15 @@ locals {
       operating_system                  = "RHCOS"
       boot_volume_encryption_kms_config = local.boot_volume_encryption_kms_config
     },
-    # LMA
-    # {
-    #   subnet_prefix     = "gpu"
-    #   pool_name         = "gpu"
-    #   # machine_type      = "gx3.16x80.l4"
-    #   machine_type      = "gx3d.24x120.a100p"
-    #   secondary_storage = "600gb.10iops-tier"
-    #   workers_per_zone  = 1
-    #   operating_system  = "RHCOS"
-    # }
+    {
+      subnet_prefix     = "gpu"
+      pool_name         = "gpu"
+      # machine_type      = "gx3.16x80.l4"
+      machine_type      = "gx3d.24x120.a100p"
+      secondary_storage = "600gb.10iops-tier"
+      workers_per_zone  = 1
+      operating_system  = "RHCOS"
+    }
   ]
 }
 
@@ -123,7 +122,7 @@ module "ocp_base" {
   # Set to folse as local-exec is not supported by default on Terraform Cloud
   verify_worker_network_readiness     = false
   addons = {
-    # "openshift-ai"              = { version = "417" }
+    "openshift-ai"              = { version = "417" }
     "openshift-data-foundation" = { version = "4.18.0" }
     # "openshift-data-foundation" = { version = "4.19.1" }
   }
